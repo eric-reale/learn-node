@@ -24,6 +24,7 @@ app.set('view engine', 'pug'); // we use the engine pug, mustache or EJS work gr
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Takes the raw requests and turns them into usable properties on req.body
+// Anytime someone submits data in <form> tag, you can access it in req
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
