@@ -1,5 +1,38 @@
 const mongoose = require('mongoose');
 const Store = mongoose.model('Store');
+const multer = require('multer'); // for images & multipart
+const jimp = require('jimp'); // to resize images
+const uuid = require('uuid'); // gives unique identifiers for images, so two people can both upload an image with same name
+
+const multerOptions = {
+  storage: multer.memoryStorage(),
+  fileFilter: function(req, file, next) {
+    const isPhoto = file.mimetype.startsWith('image/');
+    if(isPhoto) {
+      next(null, true);
+    } else {
+      next({ message: 'That file type isn\'t allowed!'}, false)
+    }
+  }
+};
+
+exports.upload = multer(multerOptions).single('photo');
+
+exports.resize = async (req, res, next) => {
+  // check if there is no new file to resize
+  if(!req.file) {
+    next(); // skip to next middleware
+  }
+  // console.log(req.file);
+  const extension = req.file.mimetype.split("/")[1];
+  req.body.photo = `${uuid.v4()}.${extension}`; //uuid generates unique string
+  // now we resize
+  const photo = await jimp.read(req.file.buffer);
+  await photo.resize(800, jimp.AUTO); // width of 800 and height is auto
+  await photo.write(`./public/uploads/${req.body.photo}`);
+  // once we have written the photo to our filesystem, keep going
+  next();
+}
 
 // exports.myMiddleware = (req, res, next) => {
 //   req.name = 'Wes';
@@ -48,6 +81,8 @@ exports.editStore = async (req, res) => {
 }
 
 exports.updateStore = async (req, res) => {
+  // location of store
+  // req.body.location.type = 'Point';
   // 1. Find an update the store
   // 2. Redirect them to the store and tell them it worked
   const store = await Store.findOneAndUpdate({ _id: req.params.id }, req.body, { new: true,   // <- MongoDB method. Takes 3 parameters: query, data, options. New: true means it will return the new store instead of the old one
@@ -56,3 +91,25 @@ exports.updateStore = async (req, res) => {
   req.flash('success', `Successfully updated <strong>${store.name}</strong>. <a href="/stores/${store.slug}">View Store -></a>`);
   res.redirect(`/stores/${store._id}/edit`);
 };
+
+exports.getStoresBySlug = async (req, res, next) => {
+  // res.json(req.params);
+  // res.send('it works')
+  const store = await Store.findOne({ slug: req.params.slug });
+  // res.json(store);
+  if(!store) return next();
+  res.render('store', {store, title: store.name })
+}
+
+exports.getStoresByTag = async (req, res) => {
+  // res.send('it works');
+  // const tags = await Store.getTagsList(); //getTagsList is a static method we are writing on our Store Model.
+  const tag = req.params.tag;
+  const tagQuery = tag || { $exists: true }; // if there is no tag (as in just /tags) then just return all tags
+  const tagsPromise = Store.getTagsList();
+  const storesPromise = Store.find({ tags: tagQuery});
+  const [tags, stores] = await Promise.all([tagsPromise, storesPromise]); // waiting for both promises to come back; takes as long as the longest promise
+  // res.json(result) // [tags, stores] was result before destructuring
+
+  res.render('tag', { tags: tags, title: 'Tags', tag, stores });
+}

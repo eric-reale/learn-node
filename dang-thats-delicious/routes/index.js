@@ -6,9 +6,23 @@ const { catchErrors } = require('../handlers/errorHandlers'); // just importing 
 router.get('/', catchErrors(storeController.getStores));
 router.get('/stores', catchErrors(storeController.getStores));
 router.get('/add', storeController.addStore);
-router.post('/add', catchErrors(storeController.createStore)); // use catchErrors instead of try/catch in async/await
+
+router.post('/add',
+  storeController.upload,
+  catchErrors(storeController.resize),
+  catchErrors(storeController.createStore)); // use catchErrors instead of try/catch in async/await
+
 router.get('/stores/:id/edit', catchErrors(storeController.editStore));
-router.post('/add/:id', catchErrors(storeController.updateStore)); // use catchErrors instead of try/catch in async/await
+
+router.post('/add/:id',
+  storeController.upload,
+  catchErrors(storeController.resize),
+  catchErrors(storeController.updateStore)); // use catchErrors instead of try/catch in async/await
+
+router.get('/store/:slug', catchErrors(storeController.getStoresBySlug));
+
+router.get('/tags', catchErrors(storeController.getStoresByTag));
+router.get('/tags/:tag', catchErrors(storeController.getStoresByTag));
 
 // router.get('/', storeController.myMiddleware, storeController.homePage);
 
