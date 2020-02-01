@@ -3,6 +3,7 @@ const Store = mongoose.model('Store');
 const multer = require('multer'); // for images & multipart
 const jimp = require('jimp'); // to resize images
 const uuid = require('uuid'); // gives unique identifiers for images, so two people can both upload an image with same name
+const User = mongoose.model('User');
 
 const multerOptions = {
   storage: multer.memoryStorage(),
@@ -136,4 +137,23 @@ const stores = await Store.find({
 // limit to only 5 results
 .limit(5);
 res.json(stores);
+};
+
+exports.heartStore = async (req, res) => {
+  const hearts = req.user.hearts.map(obj => obj.toString());
+  const operator = hearts.includes(req.params.id) ? '$pull' : '$addToSet';
+  const user = await User
+    .findByIdAndUpdate(req.user._id,
+    { [operator]: {hearts: req.params.id }},  // operator will be either pull or addToSet
+    { new: true }
+    );
+  res.json(user);
+}
+
+exports.getHearts = async (req, res) => {
+  const stores = await Store.find({
+    _id: { $in: req.user.hearts }
+  });
+  // res.json(stores)
+  res.render('stores', { title: 'Hearted Stores', stores })
 }

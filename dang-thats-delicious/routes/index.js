@@ -46,7 +46,10 @@ router.post('/account/reset/:token',
   catchErrors(authController.update)
 );
 
+router.get('/hearts', catchErrors(storeController.getHearts));
+
 router.get('/api/search', catchErrors(storeController.searchStores));
+router.post('/api/stores/:id/heart', authController.isLoggedIn, catchErrors(storeController.heartStore));
 
 // router.get('/', storeController.myMiddleware, storeController.homePage);
 
