@@ -3,7 +3,8 @@ mixin storeCard(store = {})
     .store__hero
       .store__actions
         //- // console.log(store.author)
-        if user && store.author.equals(user._id) // only display the edit pencil if the user matches the stores owner/user_id // see number 29, last 2 minutes about having admin users
+        if user && store.author.equals(user._id)
+        // only display the edit pencil if the user matches the stores owner/user_id // see number 29, last 2 minutes about having admin users
           .store__action.store__action--edit
             a(href=`/stores/${store._id}/edit`)
               != h.icon('pencil')

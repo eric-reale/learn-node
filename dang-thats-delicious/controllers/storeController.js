@@ -120,4 +120,20 @@ exports.getStoresByTag = async (req, res) => {
   // res.json(result) // [tags, stores] was result before destructuring
 
   res.render('tag', { tags: tags, title: 'Tags', tag, stores });
+};
+
+exports.searchStores = async (req, res) => {
+// res.json(req.query);
+const stores = await Store.find({
+  $text: {
+    $search: req.query.q
+  }
+}, { // dont need this additional object. Can run with just search above.
+  score: { $meta: 'textScore'} // adding a field (i.e. 'projecting' in mongodb) base on textscore (how many times query search is in name or dsecription, the more the better)
+}).sort({
+  score: { $meta: 'textScore'} // sort by textScore
+})
+// limit to only 5 results
+.limit(5);
+res.json(stores);
 }
