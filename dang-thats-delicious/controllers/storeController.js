@@ -66,9 +66,28 @@ exports.createStore = async (req, res) => {
 };
 
 exports.getStores = async (req, res) => {
-  const stores = await Store.find();
+  const page = req.params.page || 1;
+  const limit = 4;
+  const skip = (page * limit) - limit;
+
+  const storesPromise = Store
+    .find()
+    .skip(skip)
+    .limit(limit)
+    .sort({ created: 'desc'});
+
+  const countPromise = Store.count();
+
+  const [stores, count] = await Promise.all([storesPromise, countPromise]);
+
+  const pages = Math.ceil(count / limit); // rounding up if division has remainder
   // console.log(stores);
-  res.render('stores', { title: 'Stores', stores: stores}); // because of ES6 could also just say stores instead of stores: stores
+  if (!stores.length && skip) {
+    req.flash('info', `Hey you asked for page ${page}. But that doesn't exist. So I put you on page ${pages}.`)
+    res.redirect(`/stores/page/${pages}`);
+    return;
+  }
+  res.render('stores', { title: 'Stores', stores: stores, page, pages, count}); // because of ES6 could also just say stores instead of stores: stores
 }
 
 const confirmOwner = (store, user) => {
@@ -104,7 +123,7 @@ exports.getStoresBySlug = async (req, res, next) => {
   // res.json(req.params);
   // res.send('it works')
   const store = await Store.findOne({ slug: req.params.slug })
-    .populate('author'); // when we get the store, it will find the user associated with it and populate the author in the object
+    .populate('author reviews'); // when we get the store, it will find the user associated with it and populate the author in the object
   // res.json(store);
   if(!store) return next();
   res.render('store', {store, title: store.name })
@@ -156,4 +175,10 @@ exports.getHearts = async (req, res) => {
   });
   // res.json(stores)
   res.render('stores', { title: 'Hearted Stores', stores })
+}
+
+exports.getTopStores = async (req, res) => {
+  const stores = await Store.getTopStores();
+  // res.json(stores);
+  res.render('topStores', {stores, title: 'Top Stores!'});
 }
